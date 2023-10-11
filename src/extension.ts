@@ -9,6 +9,13 @@ export function activate(context: vscode.ExtensionContext) {
 				StacktracePanel.createOrShow(context.extensionUri);
 				vscode.window.showInformationMessage('Hello World from StacktraceViewer!');
 				console.log("Hola!");
+				const oc = vscode.window.createOutputChannel("foo output chan", "Log")
+				oc.appendLine("/home/janmejay/projects/rubrik/sdmain1/src/go/src/rubrik/cqlproxy/server/server.go:161")
+				oc.appendLine("./cqlproxy/server/server.go:161")
+				oc.appendLine("/home/janmejay/projects/rubrik/sdmain1/src/go/src/rubrik/cqlproxy/cdmserver/db2_mc_test.go:42")
+				oc.appendLine("cqlproxy/cdmserver/db2_mc_test.go:42")
+				oc.appendLine("foo")
+				oc.show(true)
 			}));
 
 	context.subscriptions.push(
