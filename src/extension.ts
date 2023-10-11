@@ -2,6 +2,25 @@ import * as vscode from 'vscode';
 
 export function activate(context: vscode.ExtensionContext) {
 
+	const documentLinkProviderDisposable = vscode.languages.registerDocumentLinkProvider(
+		{ language: "stv" },
+		{
+		  provideDocumentLinks: (doc) => {
+			var links = [];
+			for (var i = 0; i < 2; i++) {
+				vscode.window.showWarningMessage("building link: " + i);
+				const l = doc.lineAt(i);
+				links.push(
+					new vscode.DocumentLink(
+						l.range,
+						vscode.Uri.file("/home/janmejay/projects/rubrik/sdmain1/src/go/src/rubrik/cqlproxy/server/server.go")));
+			}
+			vscode.window.showWarningMessage("Provided links: " + links.length);
+			return links;
+		  }
+		}
+	  );
+
 	context.subscriptions.push(
 		vscode.commands.registerCommand(
 			'stv.hola',
@@ -9,13 +28,13 @@ export function activate(context: vscode.ExtensionContext) {
 				StacktracePanel.createOrShow(context.extensionUri);
 				vscode.window.showInformationMessage('Hello World from StacktraceViewer!');
 				console.log("Hola!");
-				const oc = vscode.window.createOutputChannel("foo output chan", "Log")
-				oc.appendLine("/home/janmejay/projects/rubrik/sdmain1/src/go/src/rubrik/cqlproxy/server/server.go:161")
-				oc.appendLine("./cqlproxy/server/server.go:161")
-				oc.appendLine("/home/janmejay/projects/rubrik/sdmain1/src/go/src/rubrik/cqlproxy/cdmserver/db2_mc_test.go:42")
-				oc.appendLine("cqlproxy/cdmserver/db2_mc_test.go:42")
-				oc.appendLine("foo")
-				oc.show(true)
+				const oc = vscode.window.createOutputChannel("foo output chan", "stv");
+				oc.appendLine("/home/janmejay/projects/rubrik/sdmain1/src/go/src/rubrik/cqlproxy/server/server.go:161");
+				oc.appendLine("./cqlproxy/server/server.go:161");
+				oc.appendLine("/home/janmejay/projects/rubrik/sdmain1/src/go/src/rubrik/cqlproxy/cdmserver/db2_mc_test.go:42");
+				oc.appendLine("cqlproxy/cdmserver/db2_mc_test.go:42");
+				oc.appendLine("foo");
+				oc.show(true);
 			}));
 
 	context.subscriptions.push(
