@@ -9,13 +9,19 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onWebviewPanel:stPanel"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "stacktraceviewer.helloWorld",
-        "title": "Hello World"
+        "command": "stv.hola",
+        "title": "Hola"
+      },
+      {
+        "command": "stv.warn",
+        "title": "Gen Warning"
       }
     ]
   },
