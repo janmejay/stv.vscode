@@ -17,12 +17,12 @@
   "contributes": {
     "commands": [
       {
-        "command": "stv.hola",
-        "title": "Hola"
+        "command": "stv.load",
+        "title": "stv: Load backtrace(s)"
       },
       {
-        "command": "stv.warn",
-        "title": "Gen Warning"
+        "command": "stv.closeAll",
+        "title": "stv: Close all backtraces"
       }
     ]
   },

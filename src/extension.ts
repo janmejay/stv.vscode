@@ -124,73 +124,61 @@ function processTraceLine(str: string): Thenable<TraceLine> {
 		.then(p => new TraceLine(str, fl, p.workspacePath));
 }
 
+var backtraceCounter: number = 1;
+
+var allBacktraceChannels: vscode.OutputChannel[] = [];
+
+function presentBacktrace(text: string) {
+	const textLines = text.split('\n');
+	const btId = backtraceCounter++;
+	const statusMsg = vscode.window.setStatusBarMessage(
+		`Processing ${textLines.length} of backtrace(${btId})...`);
+	Promise
+		.all(textLines.map(processTraceLine))
+		.then(
+			ptls => {
+				const oc = vscode.window.createOutputChannel(
+					`Backtrace ${btId} (${textLines.length} lines)`,
+					"Log");
+				allBacktraceChannels.push(oc);
+				ptls.forEach(
+					ptl => {
+						if (ptl.matchingPath) {
+							oc.appendLine(`${ptl.origStr} -> ${ptl.matchingPath}:${ptl.origFL?.line}`);
+						} else {
+							oc.appendLine(ptl.origStr);
+						}
+					}
+				);
+				statusMsg.dispose();
+				oc.show(true);
+			}
+		);
+}
+
 export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
 		vscode.commands.registerCommand(
-			'stv.hola',
+			'stv.load',
 			() => {
-				const urisT = vscode.workspace.findFiles('**/cqlproxy/server/server.go', '**​/.git/**', 2);
-				StacktracePanel.createOrShow(context.extensionUri);
-				vscode.window.showInformationMessage('Hello World from StacktraceViewer!');
-				console.log("Hola!");
-				const oc = vscode.window.createOutputChannel("foo output chan", "Log");
-
-				const golangTrace = `
-goroutine 25 [syscall, 45 minutes, locked to thread]:
-github.com/janmejay/jnigi._Cfunc_CallVoidMethodA(0x7fa934001348, 0x7fa9340026b0, 0x7faa14c1a4f0, 0x0)
-        _cgo_gotypes.go:962 +0x45
-github.com/janmejay/jnigi.callVoidMethodA.func1(0xabc220?, 0x7fa934002880?, 0xc0000d7cf8?, 0xc0000d7d08?)
-        /home/ubuntu/code/sdmain1/src/go/src/rubrik/vendor/github.com/janmejay/jnigi/cwrapper.go:801 +0xa6
-github.com/janmejay/jnigi.callVoidMethodA(0xc000147040?, 0x0?, 0x0?, 0xd8297b?)
-        /home/ubuntu/code/sdmain1/src/go/src/rubrik/vendor/github.com/janmejay/jnigi/cwrapper.go:801 +0x19
-github.com/janmejay/jnigi.(*ObjectRef).CallMethod(0xc0003763a0, 0xc000147040, {0xd8297b, 0x3}, {0xc85700, 0xeb40b8}, {0x0, 0x0, 0x0})
-        /home/ubuntu/code/sdmain1/src/go/src/rubrik/vendor/github.com/janmejay/jnigi/jnigi.go:1098 +0x68e
-rubrik/cqlproxy/sch_test.runSChScalaTestSuite({0xec37b8, 0xc0000400e0}, 0x0?, 0xc000147040)
-        /home/ubuntu/code/sdmain1/src/go/src/rubrik/cqlproxy/sch/sch_test.go:78 +0x15a
-rubrik/cqlproxy/sch_test.TestAllSchStack(0xc000102ea0)
-        /home/ubuntu/code/sdmain1/src/go/src/rubrik/cqlproxy/sch/sch_test.go:1101 +0x1ba
-testing.tRunner(0xc000102ea0, 0xdee870)
-        /usr/local/go/src/testing/testing.go:1576 +0x10b
-created by testing.(*T).Run
-        /usr/local/go/src/testing/testing.go:1629 +0x3ea
-
-goroutine 69 [chan receive, 47 minutes]:
-rubrik/cqlproxy/server.RunProxyServer({0xec37b8?, 0xc0000400e0}, 0x0?, 0x0?, {0xec7620, 0xc000377980}, {0xec7620?, 0xc0003779a0}, 0xc00010f7a0, {0xec1760, ...}, ...)
-        /home/ubuntu/code/sdmain1/src/go/src/rubrik/cqlproxy/server/server.go:159 +0x62a
-rubrik/cqlproxy/testutil.RunBaseLspProxyServer.func2()
-        /home/ubuntu/code/sdmain1/src/go/src/rubrik/cqlproxy/testutil/test_harness.go:604 +0x197
-created by rubrik/cqlproxy/testutil.RunBaseLspProxyServer
-        /home/ubuntu/code/sdmain1/src/go/src/rubrik/cqlproxy/testutil/test_harness.go:603 +0x1ab
-`;
-				Promise
-					.all(golangTrace.split('\n').map(processTraceLine))
-					.then(
-						ptls => {
-							ptls.forEach(
-								ptl => {
-									//oc.appendLine(`PTL(${ptl.origStr}) -> ${ptl.matchingPath}`);
-									if (ptl.matchingPath) {
-										oc.appendLine(`${ptl.origStr} -> ${ptl.matchingPath}:${ptl.origFL?.line}`);
-									} else {
-										oc.appendLine(ptl.origStr);
-									}
-								}
-							);
-							oc.show(true);
-						}
-					);
-
-
+				vscode.env.clipboard.readText().then(presentBacktrace);
 			}));
 
 	context.subscriptions.push(
 		vscode.commands.registerCommand(
-			'stv.warn',
+			'stv.closeAll',
 			() => {
-				const uri = vscode.Uri.parse(`${vscode.env.uriScheme}://jj.stacktraceviewer`);
-				vscode.window.showWarningMessage(`You have been warned ${uri}!`);
+				const btChannels = allBacktraceChannels;
+				allBacktraceChannels = [];
+				const l = btChannels.length;
+				var suffixStr = "backtraces";
+				if (l === 1) {
+					suffixStr = "backtrace";
+				}
+				vscode.window.showInformationMessage(
+					`Closing ${btChannels.length} ${suffixStr}.`);
+				btChannels.forEach(c => c.dispose());
 			}));
-
 }
 
 // This method is called when your extension is deactivated
