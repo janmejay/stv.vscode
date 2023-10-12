@@ -34,7 +34,7 @@ class TraceLine {
 	}
 }
 
-function findUniquePath(pathParts: string[], min: number, max: number): Thenable<string> {
+function findUniquePath(pathParts: string[], min: number, max: number): Thenable<string | undefined> {
 	const l = pathParts.length;
 	const s = Math.floor((min + max) / 2);
 	var glob = "**" + pathTok;
@@ -51,13 +51,13 @@ function findUniquePath(pathParts: string[], min: number, max: number): Thenable
 			} else if (paths.length === 0) {
 				// console.log(`Found no path for ${glob} (${min}, ${max})`);
 				if (s >= max - 1) {
-					return "";
+					return undefined;
 				}
 				return findUniquePath(pathParts, s, max);
 			} else {
 				// console.log(`Found too many paths for ${paths} for ${glob} (${min}, ${max})`);
 				if (s <= min + 1) {
-					return "";
+					return undefined;
 				}
 				return findUniquePath(pathParts, min, s);
 			}
@@ -65,11 +65,68 @@ function findUniquePath(pathParts: string[], min: number, max: number): Thenable
 	);
 }
 
-function computeAbsPath(givenPath: string): Thenable<MatchingFile> {
+export function commonSuffixLen(strShort: string, strLong: string): number {
+	if (strShort.length > strLong.length) {
+		return commonSuffixLen(strLong, strShort);
+	}
+	const lDiff = strLong.length - strShort.length
+	for (var i = strShort.length - 1; i >= 0; i--) {
+		// console.log(`@ i=${i} s=${strShort[i]} l=${strLong[i]} eq=${strShort[i] === strLong[i]}`);
+		if (strShort[i] !== strLong[i + lDiff]) {
+			return strShort.length - i - 1;
+		}
+	}
+	return strShort.length;
+}
+
+var workspacePathPrefixCache: Map<string, string> = new Map<string, string>();
+
+function primePathPrefixCache(givenPath: string, workspacePath: string) {
+	const suffixLen = commonSuffixLen(givenPath, workspacePath);
+	// console.log(`Common suffix len between ${givenPath} and ${workspacePath} = ${suffixLen}`);
+	const givenPrefix = givenPath.substring(0, givenPath.length - suffixLen);
+	const wsPrefix = workspacePath.substring(0, workspacePath.length - suffixLen);
+	// console.log(`Primed ${givenPrefix} -> ${wsPrefix}`);
+	workspacePathPrefixCache.set(givenPrefix, wsPrefix);
+}
+
+function computeCacheMissedAbsPath(
+	givenPath: string
+): Thenable<MatchingFile | undefined> {
 	const parts = givenPath.split(pathTok);
-	//console.log(`Starting lookup for ${givenPath}`);
+	// console.log(`Starting lookup for ${givenPath}`);
 	return findUniquePath(parts, 0, parts.length - 1)
-			.then(p => new MatchingFile(givenPath, p));
+		.then(p => {
+			if (p) {
+				primePathPrefixCache(givenPath, p);
+				return new MatchingFile(givenPath, p);
+			} else {
+				return undefined;
+			}
+		});
+}
+
+function computeAbsPath(givenPath: string): Thenable<MatchingFile | undefined> {
+	for (let [givenPrefix, wsPrefix] of workspacePathPrefixCache) {
+		if (givenPath.startsWith(givenPrefix)) {
+			const path = wsPrefix + givenPath.substring(givenPrefix.length);
+			// console.log(`Cache HIT ${givenPrefix} -> ${wsPrefix} [${path}]`);
+			return vscode.workspace.fs
+				.stat(vscode.Uri.file(path))
+				.then(
+					_ => {
+						// console.log(`File found, returning ${path}`);
+						return new MatchingFile(givenPath, path);
+					},
+					_ => {
+						// console.log(`File NOT found, computing...`);
+						return computeAbsPath(givenPath);
+					}
+				);
+		}
+	}
+	// console.log(`Cache missed for ${givenPath}, computing now`);
+	return computeCacheMissedAbsPath(givenPath);
 }
 
 function makeFileLine(str: string): (FileLine | undefined) {
@@ -121,7 +178,13 @@ function processTraceLine(str: string): Thenable<TraceLine> {
 		return Promise.resolve(new TraceLine(str, undefined, undefined));
 	}
 	return computeAbsPath(fl.file)
-		.then(p => new TraceLine(str, fl, p.workspacePath));
+		.then(p => {
+			if (p) {
+				return new TraceLine(str, fl, p.workspacePath);
+			} else {
+				return new TraceLine(str, fl, undefined);
+			}
+		});
 }
 
 var backtraceCounter: number = 1;
@@ -161,6 +224,7 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.commands.registerCommand(
 			'stv.load',
 			() => {
+				console.log(`Cache size: ${workspacePathPrefixCache.size}`);
 				vscode.env.clipboard.readText().then(presentBacktrace);
 			}));
 
