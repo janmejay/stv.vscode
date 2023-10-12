@@ -1,5 +1,6 @@
 {
   "name": "stacktraceviewer",
+  "publisher": "jj",
   "displayName": "StacktraceViewer",
   "description": "Makes working with stacktraces easier",
   "version": "0.0.1",
@@ -14,15 +15,6 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
-    "languages": [
-      {
-        "id": "stv",
-        "extensions": [".stv"],
-        "aliases": ["StackTraceViewer", "stv"],
-        "filenames": [],
-        "firstLine": "^#!/.*\\bstv\\b"
-      }
-    ],
     "commands": [
       {
         "command": "stv.hola",

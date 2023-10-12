@@ -1,39 +1,72 @@
 import * as vscode from 'vscode';
 
-export function activate(context: vscode.ExtensionContext) {
+const pathTok = "/";
 
-	const documentLinkProviderDisposable = vscode.languages.registerDocumentLinkProvider(
-		{ language: "stv" },
-		{
-		  provideDocumentLinks: (doc) => {
-			var links = [];
-			for (var i = 0; i < 2; i++) {
-				vscode.window.showWarningMessage("building link: " + i);
-				const l = doc.lineAt(i);
-				links.push(
-					new vscode.DocumentLink(
-						l.range,
-						vscode.Uri.file("/home/janmejay/projects/rubrik/sdmain1/src/go/src/rubrik/cqlproxy/server/server.go")));
+function findUniquePath(pathParts: string[], min: number, max: number): Thenable<string> {
+	const l = pathParts.length;
+	const s = Math.floor((min + max) / 2);
+	var glob = "**" + pathTok;
+	for (var i = s; i < l - 1; i++) {
+		glob += (pathParts[i] + pathTok);
+	}
+	glob += pathParts[l - 1];
+	const matchingPathsT = vscode.workspace.findFiles(glob, '**/.git/**', 2);
+	return matchingPathsT.then(
+		paths => {
+			if (paths.length === 1) {
+				console.log(`Found unique path ${paths[0]}`);
+				return paths[0].fsPath;
+			} else if (paths.length === 0) {
+				console.log(`Found no path for ${glob} (${min}, ${max})`);
+				if (s > max - 1) {
+					return "";
+				}
+				return findUniquePath(pathParts, s, max);
+			} else {
+				console.log(`Found too many paths for ${paths} for ${glob} (${min}, ${max})`);
+				if (s < min + 1) {
+					return "";
+				}
+				return findUniquePath(pathParts, min, s);
 			}
-			vscode.window.showWarningMessage("Provided links: " + links.length);
-			return links;
-		  }
 		}
-	  );
+	);
+}
 
+function computeAbsPath(relPath: string): Thenable<string> {
+	const parts = relPath.split(pathTok);
+	console.log(`Starting lookup for ${relPath}`);
+	return findUniquePath(parts, 0, parts.length - 1);
+}
+
+export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
 		vscode.commands.registerCommand(
 			'stv.hola',
 			() => {
+				const urisT = vscode.workspace.findFiles('**/cqlproxy/server/server.go', '**​/.git/**', 2);
 				StacktracePanel.createOrShow(context.extensionUri);
 				vscode.window.showInformationMessage('Hello World from StacktraceViewer!');
 				console.log("Hola!");
-				const oc = vscode.window.createOutputChannel("foo output chan", "stv");
+				const oc = vscode.window.createOutputChannel("foo output chan", "Log");
 				oc.appendLine("/home/janmejay/projects/rubrik/sdmain1/src/go/src/rubrik/cqlproxy/server/server.go:161");
 				oc.appendLine("./cqlproxy/server/server.go:161");
 				oc.appendLine("/home/janmejay/projects/rubrik/sdmain1/src/go/src/rubrik/cqlproxy/cdmserver/db2_mc_test.go:42");
 				oc.appendLine("cqlproxy/cdmserver/db2_mc_test.go:42");
 				oc.appendLine("foo");
+				urisT.then(uris => uris.forEach(uri => {
+					oc.appendLine(`uri: ${uri}`);
+				}));
+
+				computeAbsPath("/home/janmejay/projects/rubrik/sdmain1/src/go/src/rubrik/cqlproxy/server/server.go").then(
+					uniqPath => {
+						if (uniqPath === "") {
+							console.log(`Couldn't find path.`);
+						} else {
+							console.log(`Found UNIQ path ${uniqPath}`);
+						}
+					});
+
 				oc.show(true);
 			}));
 
@@ -41,7 +74,8 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.commands.registerCommand(
 			'stv.warn',
 			() => {
-				vscode.window.showWarningMessage('You have been warned!');
+				const uri = vscode.Uri.parse(`${vscode.env.uriScheme}://jj.stacktraceviewer`);
+				vscode.window.showWarningMessage(`You have been warned ${uri}!`);
 			}));
 
 }
