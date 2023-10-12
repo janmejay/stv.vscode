@@ -2,6 +2,17 @@ import * as vscode from 'vscode';
 
 const pathTok = "/";
 
+class MatchingFile {
+	readonly givenPath: string;
+
+	readonly workspacePath: string;
+
+	constructor(stackTracePath: string, workspacePath: string) {
+		this.givenPath = stackTracePath;
+		this.workspacePath = workspacePath;
+	}
+}
+
 function findUniquePath(pathParts: string[], min: number, max: number): Thenable<string> {
 	const l = pathParts.length;
 	const s = Math.floor((min + max) / 2);
@@ -18,13 +29,13 @@ function findUniquePath(pathParts: string[], min: number, max: number): Thenable
 				return paths[0].fsPath;
 			} else if (paths.length === 0) {
 				console.log(`Found no path for ${glob} (${min}, ${max})`);
-				if (s > max - 1) {
+				if (s >= max - 1) {
 					return "";
 				}
 				return findUniquePath(pathParts, s, max);
 			} else {
 				console.log(`Found too many paths for ${paths} for ${glob} (${min}, ${max})`);
-				if (s < min + 1) {
+				if (s <= min + 1) {
 					return "";
 				}
 				return findUniquePath(pathParts, min, s);
@@ -33,10 +44,11 @@ function findUniquePath(pathParts: string[], min: number, max: number): Thenable
 	);
 }
 
-function computeAbsPath(relPath: string): Thenable<string> {
-	const parts = relPath.split(pathTok);
-	console.log(`Starting lookup for ${relPath}`);
-	return findUniquePath(parts, 0, parts.length - 1);
+function computeAbsPath(givenPath: string): Thenable<MatchingFile> {
+	const parts = givenPath.split(pathTok);
+	console.log(`Starting lookup for ${givenPath}`);
+	return findUniquePath(parts, 0, parts.length - 1)
+			.then(p => new MatchingFile(givenPath, p));
 }
 
 export function activate(context: vscode.ExtensionContext) {
@@ -58,14 +70,23 @@ export function activate(context: vscode.ExtensionContext) {
 					oc.appendLine(`uri: ${uri}`);
 				}));
 
-				computeAbsPath("/home/janmejay/projects/rubrik/sdmain1/src/go/src/rubrik/cqlproxy/server/server.go").then(
-					uniqPath => {
-						if (uniqPath === "") {
-							console.log(`Couldn't find path.`);
-						} else {
-							console.log(`Found UNIQ path ${uniqPath}`);
-						}
-					});
+
+				const samplePaths: string[] = [
+					"/home/ubuntu/code/sdmain1/src/go/src/rubrik/vendor/github.com/janmejay/jnigi/cwrapper.go",
+					"/home/ubuntu/code/sdmain1/src/go/src/rubrik/cqlproxy/sch/sch_test.go",
+					"/usr/local/go/src/testing/testing.go",
+					"/home/ubuntu/code/sdmain1/src/go/src/rubrik/cqlproxy/server/server.go",
+				];
+
+				Promise.all(samplePaths.map(p => computeAbsPath(p))).then(
+					paths => {
+						paths.forEach(
+							mp => {
+								oc.appendLine(`MAP(${mp.givenPath}) = ${mp.workspacePath}`);
+							}
+						);
+					}
+				);
 
 				oc.show(true);
 			}));
