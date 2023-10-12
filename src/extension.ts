@@ -87,7 +87,7 @@ function makeFileLine(str: string): (FileLine | undefined) {
 	}
 
 	const fStr = str.substring(0, lineSep);
-	console.log(`Makeing FL: Str=${str} File=${fStr} Line=${lineNo}`);
+	// console.log(`Makeing FL: Str=${str} File=${fStr} Line=${lineNo}`);
 	return new FileLine(fStr, lineNo);
 }
 
