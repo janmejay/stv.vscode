@@ -134,32 +134,6 @@ export function activate(context: vscode.ExtensionContext) {
 				vscode.window.showInformationMessage('Hello World from StacktraceViewer!');
 				console.log("Hola!");
 				const oc = vscode.window.createOutputChannel("foo output chan", "Log");
-				oc.appendLine("/home/janmejay/projects/rubrik/sdmain1/src/go/src/rubrik/cqlproxy/server/server.go:161");
-				oc.appendLine("./cqlproxy/server/server.go:161");
-				oc.appendLine("/home/janmejay/projects/rubrik/sdmain1/src/go/src/rubrik/cqlproxy/cdmserver/db2_mc_test.go:42");
-				oc.appendLine("cqlproxy/cdmserver/db2_mc_test.go:42");
-				oc.appendLine("foo");
-				urisT.then(uris => uris.forEach(uri => {
-					oc.appendLine(`uri: ${uri}`);
-				}));
-
-
-				const samplePaths: string[] = [
-					"/home/ubuntu/code/sdmain1/src/go/src/rubrik/vendor/github.com/janmejay/jnigi/cwrapper.go",
-					"/home/ubuntu/code/sdmain1/src/go/src/rubrik/cqlproxy/sch/sch_test.go",
-					"/usr/local/go/src/testing/testing.go",
-					"/home/ubuntu/code/sdmain1/src/go/src/rubrik/cqlproxy/server/server.go",
-				];
-
-				Promise.all(samplePaths.map(p => computeAbsPath(p))).then(
-					paths => {
-						paths.forEach(
-							mp => {
-								oc.appendLine(`MAP(${mp.givenPath}) = ${mp.workspacePath}`);
-							}
-						);
-					}
-				);
 
 				const golangTrace = `
 goroutine 25 [syscall, 45 minutes, locked to thread]:
@@ -202,10 +176,11 @@ created by rubrik/cqlproxy/testutil.RunBaseLspProxyServer
 									}
 								}
 							);
+							oc.show(true);
 						}
 					);
 
-				oc.show(true);
+
 			}));
 
 	context.subscriptions.push(
