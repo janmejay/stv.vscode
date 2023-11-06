@@ -28,3 +28,4 @@ Support for Golang source-line linking.
 ## Code
 
 Contributions are welcome.
+Repository URL: https://github.com/janmejay/stv.vscode

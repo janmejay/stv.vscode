@@ -69,7 +69,7 @@ export function commonSuffixLen(strShort: string, strLong: string): number {
 	if (strShort.length > strLong.length) {
 		return commonSuffixLen(strLong, strShort);
 	}
-	const lDiff = strLong.length - strShort.length
+	const lDiff = strLong.length - strShort.length;
 	for (var i = strShort.length - 1; i >= 0; i--) {
 		// console.log(`@ i=${i} s=${strShort[i]} l=${strLong[i]} eq=${strShort[i] === strLong[i]}`);
 		if (strShort[i] !== strLong[i + lDiff]) {
