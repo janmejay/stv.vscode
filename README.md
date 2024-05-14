@@ -17,11 +17,13 @@ None
 
 ## Release Notes
 
-Users appreciate release notes as you update your extension.
+### 0.0.2
 
-### 1.0.0
+- Bug fix for infinite recursion for non-existing files.
 
-Support for Golang source-line linking.
+### 0.0.1
+
+- Support for Golang source-line linking.
 
 ---
 
