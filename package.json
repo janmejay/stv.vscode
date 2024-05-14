@@ -1,9 +1,9 @@
 {
   "name": "stv",
-  "publisher": "janmejay",
+  "publisher": "janmejays",
   "displayName": "Backtrace Viewer",
   "description": "Makes working with backtrace blobs easier",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "repository": "https://github.com/janmejay/stv.vscode",
   "engines": {
     "vscode": "^1.82.0"

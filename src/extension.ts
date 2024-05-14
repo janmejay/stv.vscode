@@ -120,7 +120,7 @@ function computeAbsPath(givenPath: string): Thenable<MatchingFile | undefined> {
 					},
 					_ => {
 						// console.log(`File NOT found, computing...`);
-						return computeAbsPath(givenPath);
+						return computeCacheMissedAbsPath(givenPath);
 					}
 				);
 		}
